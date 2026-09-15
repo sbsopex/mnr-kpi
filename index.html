@@ -97,6 +97,41 @@
   .team-context strong{display:block;font:700 22px/1.15 "Barlow Condensed",sans-serif;margin-top:2px}
   .team-context .btn{flex:0 0 auto}
 
+  /* View switch */
+  .views{display:flex;gap:6px;padding:0 0 16px}
+  .view-btn{background:transparent;border:1px solid #5B7D98;color:#DCE6EE;padding:7px 16px;border-radius:var(--radius);cursor:pointer;font-weight:600}
+  .view-btn:hover{background:var(--navy-2)}
+  .view-btn[aria-current="page"]{background:#fff;color:var(--navy);border-color:#fff}
+
+  /* Dashboard */
+  .dash-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+  .dash-head h2{font:700 30px/1.15 "Barlow Condensed",sans-serif}
+  .dash-head p{margin:4px 0 0;color:var(--steel)}
+  .tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+  .tile{appearance:none;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;display:flex;flex-direction:column;gap:2px;cursor:pointer;color:var(--ink)}
+  .tile:hover:not(:disabled){border-color:#8EA8BA}
+  .tile:disabled{cursor:default;opacity:1}
+  .tile-name{font-size:14px;color:var(--steel);font-weight:600}
+  .tile b{font:700 38px/1.05 "Barlow Condensed",sans-serif;font-variant-numeric:tabular-nums}
+  .tile.empty b{font-size:22px;line-height:1.2;color:var(--steel);padding:8px 0 6px}
+  .tile-delta{font-size:13px;color:var(--steel)}
+  .tile-delta.up{color:var(--ok)} .tile-delta.down{color:var(--miss)}
+  .tile .meter{display:block;margin-top:8px}
+  .tile .meter i{background:var(--navy)} .tile .meter i.ok{background:var(--ok)}
+  .chart svg{width:100%;height:auto;display:block}
+  .chart text{font:12px Barlow,system-ui,sans-serif;fill:var(--steel)}
+  .legend{display:flex;flex-wrap:wrap;gap:16px;font-size:14px;margin-top:10px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:16px;height:3px;border-radius:2px;display:inline-block}
+  table.dtable{width:100%;border-collapse:collapse;font-size:14px}
+  .dtable th{text-align:left;color:var(--steel);font-weight:600;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .dtable td{padding:8px;border-bottom:1px solid #E7EBED;vertical-align:top}
+  .dtable td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .dtable th.n{text-align:right}
+  .dtable .ok{color:var(--ok);font-weight:600} .dtable .miss{color:var(--miss);font-weight:600}
+  .dtable td.rm{color:var(--steel);min-width:220px}
+  .dash .panel-block h2 + .hint{margin:-6px 0 10px}
+
   /* Sticky footer with weight stack */
   .dock{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);box-shadow:0 -6px 18px rgba(24,34,45,.06)}
   .dock-in{display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center;padding:14px 20px}
@@ -156,6 +191,8 @@
     .total b{font-size:34px}
     .stack-wrap small{display:none}
     .team-grid{grid-template-columns:1fr}
+    .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .tile b{font-size:30px}
     .team-card{min-height:154px}
     .team-context{align-items:flex-start}
     body{padding-bottom:190px}
@@ -177,6 +214,10 @@
         <span>Manager settings</span>
       </button>
     </div>
+    <nav class="views" id="viewNav" aria-label="Sections">
+      <button type="button" class="view-btn" data-view="submit" aria-current="page">Submit KPI</button>
+      <button type="button" class="view-btn" data-view="dashboard">Dashboard</button>
+    </nav>
     <div class="meta" id="metaRow">
       <label>Period<input type="month" id="period"></label>
       <label id="submitterLabel" hidden>Your name<input type="text" id="submitter" placeholder="e.g. Budi Santoso" autocomplete="name"></label>
@@ -202,8 +243,8 @@
 <dialog id="loginDlg">
   <form class="modal" method="dialog" id="loginForm">
     <h2>Manager settings</h2>
-    <p>Enter the manager password to change targets and weights. Changes are logged under your name.</p>
-    <label>Your name<input id="adminName" required autocomplete="name"></label>
+    <p>Log in to change targets and weights. Every change is logged under the manager username.</p>
+    <label>Username<input id="adminUser" required autocomplete="username" autocapitalize="off" spellcheck="false"></label>
     <label>Password<input id="adminPw" type="password" required autocomplete="current-password"></label>
     <div class="err" id="loginErr" role="alert"></div>
     <div class="actions">
@@ -254,7 +295,7 @@ function api(action, data = {}) {
 
 /* ============ State ============ */
 const DIR_LABEL = { HIGHER: 'Higher is better', LOWER: 'Lower is better', ZERO: 'Zero tolerance' };
-const state = { config: null, division: 'Repair', teamSelected: false, status: {}, values: {}, admin: null, draft: null, busy: false };
+const state = { view: 'submit', dash: null, dashReq: 0, config: null, division: 'Repair', teamSelected: false, status: {}, values: {}, admin: null, draft: null, busy: false };
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 // floor, not round, so 99.96% never displays as a misleading 100%
@@ -472,7 +513,7 @@ $('period').addEventListener('change', async () => {
   if (!/^\d{4}-\d{2}$/.test($('period').value)) return;
   await loadStatus();
   renderTabs();
-  if (!state.admin) state.teamSelected ? renderForm() : renderTeamChooser();
+  if (!state.admin) renderCurrent();
 });
 
 function confirmBox(title, text) {
@@ -487,14 +528,14 @@ function confirmBox(title, text) {
 /* ============ Manager login ============ */
 $('adminBtn').addEventListener('click', () => {
   if (state.admin) return logout();
-  $('loginErr').textContent = ''; $('adminPw').value = ''; $('loginDlg').showModal(); $('adminName').focus();
+  $('loginErr').textContent = ''; $('adminPw').value = ''; $('loginDlg').showModal(); $('adminUser').focus();
 });
 $('loginCancel').addEventListener('click', () => $('loginDlg').close());
 $('loginForm').addEventListener('submit', async e => {
   e.preventDefault();
   $('loginGo').disabled = true; $('loginErr').textContent = '';
   try {
-    const r = await api('login', { password: $('adminPw').value, name: $('adminName').value });
+    const r = await api('login', { username: $('adminUser').value, password: $('adminPw').value });
     state.admin = r; $('loginDlg').close();
     clearTimeout(state.expiry); state.expiry = setTimeout(() => { toast('Manager session expired. Unsaved changes were discarded.', true); logout(true); }, r.expiresIn * 1000);
     enterAdmin();
@@ -505,14 +546,16 @@ $('loginForm').addEventListener('submit', async e => {
 function enterAdmin() {
   state.draft = { cap: state.config.cap, items: JSON.parse(JSON.stringify(state.config.items)) };
   $('adminBtn').querySelector('span').textContent = 'Log out of settings';
+  $('viewNav').hidden = true;
   renderTabs(); renderAdmin();
 }
 async function logout(silent) {
   if (!silent && state.admin) try { await api('logout', { token: state.admin.token }); } catch (e) {}
   clearTimeout(state.expiry); state.admin = null; state.draft = null;
   $('adminBtn').querySelector('span').textContent = 'Manager settings';
+  $('viewNav').hidden = false;
   renderTabs();
-  state.teamSelected ? renderForm() : renderTeamChooser();
+  renderCurrent();
 }
 
 /* ============ Manager config editor ============ */
@@ -630,6 +673,169 @@ $('main').addEventListener('click', async e => {
   }
 });
 
+/* ============ Views ============ */
+function renderCurrent() {
+  if (state.admin) return renderAdmin();
+  document.querySelectorAll('.view-btn').forEach(b => {
+    if (b.dataset.view === state.view) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
+  if (state.view === 'dashboard') return renderDashboard();
+  state.teamSelected ? renderForm() : renderTeamChooser();
+}
+$('viewNav').addEventListener('click', e => {
+  const b = e.target.closest('.view-btn'); if (!b || state.admin) return;
+  state.view = b.dataset.view;
+  renderCurrent();
+  window.scrollTo({ top: 0 });
+});
+
+/* ============ Dashboard ============ */
+const LINE_COLORS = ['#173F5F', '#C98F00', '#2F7D51', '#8A4FA3'];
+const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+const shortMonth = p => { const [y, m] = p.split('-'); return new Date(+y, +m - 1, 1).toLocaleDateString('en-GB', { month: 'short' }) + ' ' + y.slice(2); };
+const fmtNum = v => (v === null || v === undefined || isNaN(v)) ? '–' : String(+Number(v).toFixed(2));
+
+async function renderDashboard() {
+  $('metaRow').hidden = false; $('submitterLabel').hidden = true; $('tabs').hidden = true; $('dock').hidden = true;
+  const period = $('period').value;
+  const req = ++state.dashReq;
+  $('main').innerHTML = '<div class="loading">Loading dashboard…</div>';
+  let d;
+  try {
+    d = await api('getDashboard', { period });
+  } catch (err) {
+    if (req !== state.dashReq || state.view !== 'dashboard' || state.admin) return;
+    $('main').innerHTML = `<div class="banner">Could not load the dashboard: ${esc(err.message)}. If Code.gs was just updated, deploy a new version in Apps Script.</div>`;
+    return;
+  }
+  if (req !== state.dashReq || state.view !== 'dashboard' || state.admin) return;
+  state.dash = d;
+
+  const divs = state.config.divisions, last = d.periods.length - 1, prevP = d.periods[last - 1];
+  const submitted = divs.filter(x => d.detail[x] && d.detail[x].length);
+  const avg = submitted.length ? submitted.reduce((s, x) => s + d.trend[x][last], 0) / submitted.length : null;
+
+  const tiles = divs.map(x => {
+    const t = d.trend[x] ? d.trend[x][last] : null, prev = d.trend[x] ? d.trend[x][last - 1] : null;
+    const has = t !== null && t !== undefined;
+    const delta = has && prev !== null && prev !== undefined ? (t - prev) * 100 : null;
+    const deltaText = !has ? 'Waiting for submission' : delta === null ? `No data for ${shortMonth(prevP)}` :
+      `${delta > 0 ? '+' : ''}${delta.toFixed(1)} pts vs ${shortMonth(prevP)}`;
+    return `<button class="tile ${has ? '' : 'empty'}" type="button" data-jump="${esc(x)}" ${has ? '' : 'disabled'}>
+      <span class="tile-name">${esc(x)}</span>
+      <b>${has ? pct(t) : 'Not submitted'}</b>
+      <span class="tile-delta ${delta > 0.05 ? 'up' : delta < -0.05 ? 'down' : ''}">${deltaText}</span>
+      <span class="meter"><i class="${has && t >= 1 ? 'ok' : ''}" style="width:${has ? Math.min(t, 1) * 100 : 0}%"></i></span>
+    </button>`;
+  }).join('');
+
+  const lost = [];
+  submitted.forEach(x => d.detail[x].forEach(r => {
+    const gap = r.weight * (1 - Math.min(r.ach, 1));
+    if (gap > 1e-6) lost.push(Object.assign({ div: x, gap }, r));
+  }));
+  lost.sort((a, b) => b.gap - a.gap);
+
+  const lostHtml = !submitted.length ? '' : `
+    <div class="panel-block">
+      <h2>Where the points were lost</h2>
+      <p class="hint">KPIs below target, ranked by score points lost (weight × shortfall). Fixing the top rows moves the total the most.</p>
+      ${lost.length ? `<div class="scroll"><table class="dtable">
+        <thead><tr><th>Team</th><th>KPI</th><th class="n">Actual</th><th class="n">Target</th><th class="n">Achievement</th><th class="n">Points lost</th><th>Remark</th></tr></thead>
+        <tbody>${lost.slice(0, 10).map(r => `<tr>
+          <td>${esc(r.div)}</td><td>${esc(r.item)}</td><td class="n">${fmtNum(r.actual)}</td><td class="n">${esc(r.target)}</td>
+          <td class="n miss">${pct(r.ach)}</td><td class="n">${(r.gap * 100).toFixed(1)}</td><td class="rm">${esc(r.remark)}</td></tr>`).join('')}
+        </tbody></table></div>` : '<p class="hint">Every submitted KPI hit its target this month.</p>'}
+    </div>`;
+
+  const breakdown = submitted.map(x => {
+    const m = d.meta[x] || {};
+    return `<div class="panel-block" id="dash-${slug(x)}">
+      <h2>${esc(x)}: ${pct(d.trend[x][last])}</h2>
+      <p class="hint">Submitted by ${esc(m.by)}, ${esc(m.at)}</p>
+      <div class="scroll"><table class="dtable">
+        <thead><tr><th>KPI</th><th class="n">Target</th><th class="n">Actual</th><th class="n">Achievement</th><th class="n">Weight</th><th class="n">Score</th><th>Remark</th></tr></thead>
+        <tbody>${d.detail[x].map(r => `<tr>
+          <td>${esc(r.item)}</td><td class="n">${esc(r.target)}</td><td class="n">${fmtNum(r.actual)}</td>
+          <td class="n ${r.ach >= 1 ? 'ok' : 'miss'}">${pct(r.ach)}</td><td class="n">${pct(r.weight, 0)}</td>
+          <td class="n">${pct(r.score)}</td><td class="rm">${esc(r.remark)}</td></tr>`).join('')}
+        </tbody></table></div>
+    </div>`;
+  }).join('');
+
+  $('main').innerHTML = `<section class="dash">
+    <div class="dash-head">
+      <div>
+        <h2>MNR performance, ${esc(periodLabel(period))}</h2>
+        <p>${submitted.length} of ${divs.length} teams submitted${avg !== null ? `. Average of submitted teams: ${pct(avg)}` : ''}</p>
+      </div>
+      <button class="btn btn-line" id="dashCsv" type="button" ${submitted.length ? '' : 'disabled'}>Download CSV</button>
+    </div>
+    <div class="tiles">${tiles}</div>
+    ${submitted.length ? '' : `<div class="banner info" style="margin-top:16px">No team has submitted for ${esc(periodLabel(period))} yet. Teams submit from the Submit KPI tab.</div>`}
+    <div class="panel-block chart">
+      <h2>Total score trend, last ${d.periods.length} months</h2>
+      ${trendChart(d, divs)}
+    </div>
+    ${lostHtml}
+    ${breakdown}
+  </section>`;
+}
+
+function trendChart(d, divs) {
+  const W = 720, H = 250, L = 46, R = 32, T = 14, B = 30, n = d.periods.length;
+  const vals = [];
+  divs.forEach(x => (d.trend[x] || []).forEach(v => { if (v !== null && v !== undefined) vals.push(v); }));
+  if (!vals.length) return `<p class="hint">No submissions in the last ${n} months.</p>`;
+  const ymax = Math.max(1, Math.ceil(Math.max(...vals) * 10) / 10);
+  const X = i => L + (n === 1 ? (W - L - R) / 2 : i * (W - L - R) / (n - 1));
+  const Y = v => T + (1 - v / ymax) * (H - T - B);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Total score per team over the last ${n} months">`;
+  for (let k = 0; k <= 4; k++) {
+    const v = ymax * k / 4;
+    svg += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#E3E8EA"/><text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end">${Math.round(v * 100)}%</text>`;
+  }
+  if (ymax > 1) svg += `<line x1="${L}" x2="${W - R}" y1="${Y(1)}" y2="${Y(1)}" stroke="#5A6875" stroke-dasharray="4 4"/>`;
+  d.periods.forEach((p, i) => { svg += `<text x="${X(i)}" y="${H - 8}" text-anchor="middle">${shortMonth(p)}</text>`; });
+  divs.forEach((x, di) => {
+    const c = LINE_COLORS[di % LINE_COLORS.length], s = d.trend[x] || [];
+    let path = '', open = false;
+    s.forEach((v, i) => {
+      if (v === null || v === undefined) { open = false; return; }
+      path += (open ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1) + ' '; open = true;
+    });
+    if (path) svg += `<path d="${path}" fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round"/>`;
+    s.forEach((v, i) => {
+      if (v === null || v === undefined) return;
+      svg += `<circle cx="${X(i)}" cy="${Y(v)}" r="4" fill="#fff" stroke="${c}" stroke-width="2.5"><title>${esc(x)}, ${shortMonth(d.periods[i])}: ${pct(v)}</title></circle>`;
+    });
+  });
+  svg += '</svg>';
+  return svg + `<div class="legend">${divs.map((x, di) => `<span><i style="background:${LINE_COLORS[di % LINE_COLORS.length]}"></i>${esc(x)}</span>`).join('')}</div>`;
+}
+
+function downloadCsv() {
+  const d = state.dash; if (!d) return;
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const lines = [['Period', 'Division', 'KPI', 'Target', 'QTY Target', 'Actual', 'Direction', 'Achievement %', 'Weight', 'Score', 'Result', 'Remark', 'Submitted By', 'Submitted At'].map(q).join(',')];
+  state.config.divisions.forEach(x => (d.detail[x] || []).forEach(r => {
+    const m = d.meta[x] || {};
+    lines.push([d.period, x, r.item, r.target, r.qty, r.actual, r.direction, (r.ach * 100).toFixed(1), (r.weight * 100).toFixed(0), (r.score * 100).toFixed(2), r.result, r.remark, m.by, m.at].map(q).join(','));
+  }));
+  const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = `MNR_KPI_${d.period}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+$('main').addEventListener('click', e => {
+  if (state.admin || state.view !== 'dashboard') return;
+  const j = e.target.closest('[data-jump]');
+  if (j) { document.getElementById('dash-' + slug(j.dataset.jump))?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  if (e.target.closest('#dashCsv')) downloadCsv();
+});
+
 /* ============ Boot ============ */
 (async function boot() {
   $('demoFlag').hidden = !DEMO;
@@ -640,7 +846,7 @@ $('main').addEventListener('click', async e => {
     state.division = state.config.divisions[0];
     state.teamSelected = false;
     await loadStatus();
-    renderTabs(); renderTeamChooser();
+    renderTabs(); renderCurrent();
   } catch (err) {
     $('main').innerHTML = `<div class="banner">Could not load KPI targets: ${esc(err.message)}. Check that the web app URL is correct and deployed with access set to "Anyone".</div>`;
   }
@@ -675,6 +881,27 @@ function demoApi(action, p) {
   switch (action) {
     case 'getConfig': return wait(db.cfg);
     case 'getStatus': return wait(db.status[p.period] || {});
+    case 'getDashboard': {
+      const [y0, m0] = p.period.split('-').map(Number), periods = [];
+      for (let k = 5; k >= 0; k--) { const dt = new Date(y0, m0 - 1 - k, 1); periods.push(dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0')); }
+      const trend = {}, detail = {}, meta = {};
+      db.cfg.divisions.forEach((dv, di) => {
+        trend[dv] = periods.map((_, k) => k === 5 ? null : +(0.8 + 0.06 * Math.sin(k + di * 1.7) + 0.02 * di).toFixed(4));
+        const st = (db.status[p.period] || {})[dv];
+        if (di > 1 && !st) return;   // demo: Survey & Washing and Reefer not submitted yet
+        let tot = 0;
+        detail[dv] = db.cfg.items.filter(i => i.division === dv && i.active).map((i, ii) => {
+          const q = i.qty ?? 100, f = 0.9 + ((ii * 37 + di * 11) % 15) / 100;
+          const actual = i.direction === 'ZERO' ? ii % 4 === 2 ? 1 : 0 : i.direction === 'LOWER' ? +(q / f).toFixed(2) : +(q * f).toFixed(2);
+          const ach = achievement(i.direction, q, actual, db.cfg.cap); tot += ach * i.weight;
+          return { item: i.item, target: i.target, qty: q, weight: i.weight, actual, direction: i.direction, ach, score: ach * i.weight,
+                   result: ach >= 1 ? 'Achieved' : 'Not achieved', remark: ach >= 1 ? 'On target' : 'Demo remark: below target this month' };
+        });
+        trend[dv][5] = tot;
+        meta[dv] = { by: st ? st.by : 'Demo user', at: st ? st.at : '1 Sep 2026, 09:00' };
+      });
+      return wait({ period: p.period, periods, trend, detail, meta });
+    }
     case 'submit': {
       const items = db.cfg.items.filter(i => i.division === p.division && i.active);
       const total = items.reduce((s, i) => { const e = p.entries.find(x => x.item === i.item); return s + achievement(i.direction, i.qty, parseNum(e.actual), db.cfg.cap) * i.weight; }, 0);
