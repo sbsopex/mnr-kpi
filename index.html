@@ -75,6 +75,28 @@
   [aria-invalid="true"]{border-color:var(--miss)!important;box-shadow:0 0 0 2px #F3D0CD!important}
   .kpi.locked input{background:#F1F4F5}
 
+  /* Team selection */
+  .team-select{max-width:900px;margin:10px auto 0}
+  .team-select-head{margin-bottom:18px}
+  .team-select-head .eyebrow{margin:0 0 6px;color:var(--navy);font:700 13px/1 "Barlow Condensed",sans-serif;letter-spacing:.12em;text-transform:uppercase}
+  .team-select-head h2{font:700 30px/1.15 "Barlow Condensed",sans-serif;margin:0 0 8px}
+  .team-select-head p{margin:0;color:var(--steel);max-width:660px}
+  .team-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  .team-card{appearance:none;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;cursor:pointer;color:var(--ink);transition:border-color .18s,box-shadow .18s,transform .18s;display:flex;flex-direction:column;min-height:176px}
+  .team-card:hover{border-color:#8EA8BA;box-shadow:0 8px 24px rgba(24,34,45,.08);transform:translateY(-1px)}
+  .team-card:focus-visible{outline:3px solid var(--signal);outline-offset:2px}
+  .team-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px}
+  .team-mark{width:42px;height:42px;border-radius:8px;background:var(--navy);color:#fff;display:grid;place-items:center;font:700 22px/1 "Barlow Condensed",sans-serif}
+  .team-state{font-size:12px;font-weight:600;border:1px solid var(--line);border-radius:999px;padding:4px 8px;color:var(--steel);background:#F7F9FA;white-space:nowrap}
+  .team-state.done{color:var(--ok);border-color:#B8D8C6;background:#EEF8F2}
+  .team-card strong{font:700 23px/1.15 "Barlow Condensed",sans-serif;margin-bottom:6px}
+  .team-card small{font-size:14px;color:var(--steel);line-height:1.45}
+  .team-card .open-team{margin-top:auto;padding-top:16px;color:var(--navy);font-weight:600;font-size:14px}
+  .team-context{display:flex;align-items:center;justify-content:space-between;gap:16px;background:#EAF1F6;border:1px solid #C7D7E4;border-radius:8px;padding:12px 14px;margin-bottom:16px}
+  .team-context small{display:block;color:var(--steel);font-size:12px;text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+  .team-context strong{display:block;font:700 22px/1.15 "Barlow Condensed",sans-serif;margin-top:2px}
+  .team-context .btn{flex:0 0 auto}
+
   /* Sticky footer with weight stack */
   .dock{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);box-shadow:0 -6px 18px rgba(24,34,45,.06)}
   .dock-in{display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center;padding:14px 20px}
@@ -133,6 +155,9 @@
     .dock-in .btn{justify-self:end}
     .total b{font-size:34px}
     .stack-wrap small{display:none}
+    .team-grid{grid-template-columns:1fr}
+    .team-card{min-height:154px}
+    .team-context{align-items:flex-start}
     body{padding-bottom:190px}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -154,9 +179,9 @@
     </div>
     <div class="meta" id="metaRow">
       <label>Period<input type="month" id="period"></label>
-      <label>Your name<input type="text" id="submitter" placeholder="e.g. Budi Santoso" autocomplete="name"></label>
+      <label id="submitterLabel" hidden>Your name<input type="text" id="submitter" placeholder="e.g. Budi Santoso" autocomplete="name"></label>
     </div>
-    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="tabs" role="tablist" id="tabs" hidden></div>
   </div>
 </header>
 
@@ -204,7 +229,7 @@
 <script>
 /* ============ Configuration ============ */
 // Paste your Apps Script web app URL (ends with /exec). Leave as-is to run in demo mode.
-const API_URL = 'https://script.google.com/macros/s/AKfycbxuaWtY13ANneXu0MLGS0V_z9FlWg9E2ml4U-Nww4bKeoIWDknnG9yZyGosQlYXUOUBZQ/exec';
+const API_URL = 'PASTE_YOUR_WEB_APP_URL_HERE';
 
 /* ============ Transport ============ */
 const IN_APPS_SCRIPT = typeof google !== 'undefined' && google.script && google.script.run;
@@ -229,7 +254,7 @@ function api(action, data = {}) {
 
 /* ============ State ============ */
 const DIR_LABEL = { HIGHER: 'Higher is better', LOWER: 'Lower is better', ZERO: 'Zero tolerance' };
-const state = { config: null, division: 'Repair', status: {}, values: {}, admin: null, draft: null, busy: false };
+const state = { config: null, division: 'Repair', teamSelected: false, status: {}, values: {}, admin: null, draft: null, busy: false };
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 // floor, not round, so 99.96% never displays as a misleading 100%
@@ -246,6 +271,12 @@ function achievement(dir, qty, actual, cap) {
 const needsTarget = i => i.direction !== 'ZERO' && (i.qty === null || isNaN(i.qty));
 const activeItems = div => state.config.items.filter(i => i.division === div && i.active).sort((a, b) => a.no - b.no);
 const key = (div, item) => div + '|' + item;
+const TEAM_META = {
+  'Repair': { mark: 'R', desc: 'Repair productivity, unit cost, lead time, attendance and safety.' },
+  'QC': { mark: 'Q', desc: 'Inspection accuracy, rejection, repair findings, completion and safety.' },
+  'Survey & Washing': { mark: 'S', desc: 'Survey and washing productivity, accuracy, losses and customer rejection.' },
+  'Reefer': { mark: 'RF', desc: 'Reefer productivity, repair cost, PTI/testing, rescue response and safety.' }
+};
 
 function toast(msg, bad = false) {
   const t = $('toast'); t.textContent = msg; t.className = 'toast show' + (bad ? ' bad' : '');
@@ -257,9 +288,16 @@ function periodLabel(p) {
 
 /* ============ Tabs ============ */
 function renderTabs() {
+  // Division tabs are only used inside Manager Settings.
+  // Normal submitters choose a team from the team-selection screen instead.
+  if (!state.admin) {
+    $('tabs').innerHTML = '';
+    $('tabs').hidden = true;
+    return;
+  }
+  $('tabs').hidden = false;
   $('tabs').innerHTML = state.config.divisions.map(d => `
     <button class="tab" role="tab" aria-selected="${d === state.division}" data-div="${esc(d)}">
-      ${state.admin ? '' : `<span class="dot ${state.status[d] ? 'done' : ''}" title="${state.status[d] ? 'Submitted' : 'Not submitted'}"></span>`}
       ${esc(d)}
     </button>`).join('');
 }
@@ -269,13 +307,68 @@ $('tabs').addEventListener('click', e => {
   state.admin ? renderAdmin() : renderForm();
 });
 
+/* ============ Team selection ============ */
+function renderTeamChooser() {
+  state.teamSelected = false;
+  $('metaRow').hidden = false;
+  $('submitterLabel').hidden = true;
+  $('tabs').hidden = true;
+  $('dock').hidden = true;
+
+  const period = $('period').value;
+  $('main').innerHTML = `
+    <section class="team-select" aria-labelledby="teamSelectTitle">
+      <div class="team-select-head">
+        <p class="eyebrow">Step 1 of 2</p>
+        <h2 id="teamSelectTitle">Which team are you submitting for?</h2>
+        <p>Select one team to open its KPI form for ${esc(periodLabel(period))}. You can return here later and choose another team.</p>
+      </div>
+      <div class="team-grid">
+        ${state.config.divisions.map(d => {
+          const meta = TEAM_META[d] || { mark: d.slice(0, 2).toUpperCase(), desc: 'Open this team KPI submission form.' };
+          const st = state.status[d];
+          return `
+            <button class="team-card" type="button" data-select-team="${esc(d)}">
+              <span class="team-card-top">
+                <span class="team-mark">${esc(meta.mark)}</span>
+                <span class="team-state ${st ? 'done' : ''}">${st ? 'Submitted' : 'Not submitted'}</span>
+              </span>
+              <strong>${esc(d)}</strong>
+              <small>${esc(meta.desc)}</small>
+              <span class="open-team">${st ? 'Open / resubmit KPI →' : 'Open KPI form →'}</span>
+            </button>`;
+        }).join('')}
+      </div>
+    </section>`;
+}
+
+$('main').addEventListener('click', e => {
+  const card = e.target.closest('[data-select-team]');
+  if (card && !state.admin) {
+    state.division = card.dataset.selectTeam;
+    state.teamSelected = true;
+    renderTabs();
+    renderForm();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+  if (e.target.closest('#changeTeam') && !state.admin) {
+    renderTeamChooser();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+});
+
 /* ============ Submission form ============ */
 function renderForm() {
-  $('metaRow').hidden = false; $('dock').hidden = false;
+  state.teamSelected = true;
+  $('metaRow').hidden = false; $('submitterLabel').hidden = false; $('tabs').hidden = true; $('dock').hidden = false;
   const div = state.division, items = activeItems(div);
   const missing = items.filter(needsTarget);
   const st = state.status[div];
-  let html = '';
+  let html = `<div class="team-context">
+    <div><small>Selected team</small><strong>${esc(div)}</strong></div>
+    <button class="btn btn-line" id="changeTeam" type="button">Change team</button>
+  </div>`;
   if (missing.length) html += `<div class="banner">The manager has not set targets for ${missing.map(i => esc(i.item)).join(', ')}. ${esc(div)} can submit once those are set.</div>`;
   if (st) html += `<div class="banner info">${esc(div)} already submitted ${esc(periodLabel($('period').value))} (total ${pct(st.total)}, by ${esc(st.by)}, ${esc(st.at)}). Submitting again replaces it in the reports.</div>`;
   html += '<div class="sheet">' + items.map((i, idx) => {
@@ -377,7 +470,9 @@ async function loadStatus() {
 }
 $('period').addEventListener('change', async () => {
   if (!/^\d{4}-\d{2}$/.test($('period').value)) return;
-  await loadStatus(); renderTabs(); if (!state.admin) renderForm();
+  await loadStatus();
+  renderTabs();
+  if (!state.admin) state.teamSelected ? renderForm() : renderTeamChooser();
 });
 
 function confirmBox(title, text) {
@@ -416,7 +511,8 @@ async function logout(silent) {
   if (!silent && state.admin) try { await api('logout', { token: state.admin.token }); } catch (e) {}
   clearTimeout(state.expiry); state.admin = null; state.draft = null;
   $('adminBtn').querySelector('span').textContent = 'Manager settings';
-  renderTabs(); renderForm();
+  renderTabs();
+  state.teamSelected ? renderForm() : renderTeamChooser();
 }
 
 /* ============ Manager config editor ============ */
@@ -428,7 +524,7 @@ function badDivisions() {
 }
 
 function renderAdmin() {
-  $('metaRow').hidden = true; $('dock').hidden = true;
+  $('metaRow').hidden = true; $('dock').hidden = true; $('tabs').hidden = false;
   const div = state.division;
   const rows = state.draft.items.map((i, idx) => ({ i, idx })).filter(x => x.i.division === div).sort((a, b) => a.i.no - b.i.no);
   const sum = weightSum(div), ok = Math.abs(sum - 1) <= 0.0005, bad = badDivisions();
@@ -542,8 +638,9 @@ $('main').addEventListener('click', async e => {
   try {
     state.config = await api('getConfig');
     state.division = state.config.divisions[0];
+    state.teamSelected = false;
     await loadStatus();
-    renderTabs(); renderForm();
+    renderTabs(); renderTeamChooser();
   } catch (err) {
     $('main').innerHTML = `<div class="banner">Could not load KPI targets: ${esc(err.message)}. Check that the web app URL is correct and deployed with access set to "Anyone".</div>`;
   }
