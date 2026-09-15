@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MNR KPI Submission</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --concrete:#E6EAEA; --panel:#FFFFFF; --ink:#18222D; --steel:#5A6875; --line:#CFD6D9;
+    --navy:#173F5F; --navy-2:#0F2E47; --signal:#F2B705; --ok:#2F7D51; --miss:#B42318;
+    --radius:6px;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  html,body{margin:0}
+  body{font:400 16px/1.5 Barlow,system-ui,sans-serif;color:var(--ink);background:var(--concrete);padding-bottom:140px}
+  button,input,select,textarea{font:inherit;color:inherit}
+  :focus-visible{outline:3px solid var(--signal);outline-offset:2px}
+  h1,h2,h3{margin:0;font-weight:600}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+
+  /* Header */
+  header{background:var(--navy);color:#fff}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0}
+  .brand h1{font:700 30px/1 "Barlow Condensed",sans-serif;letter-spacing:.01em}
+  .brand p{margin:4px 0 0;color:#B9C9D6;font-size:14px}
+  .btn{border:1px solid transparent;border-radius:var(--radius);padding:9px 16px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:8px}
+  .btn-ghost{background:transparent;border-color:#5B7D98;color:#fff}
+  .btn-ghost:hover{background:var(--navy-2)}
+  .btn-primary{background:var(--navy);color:#fff}
+  .btn-primary:hover{background:var(--navy-2)}
+  .btn-line{background:#fff;border-color:var(--line)}
+  .btn-line:hover{border-color:var(--steel)}
+  .btn-danger{background:#fff;border-color:#E3B7B3;color:var(--miss)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+
+  .meta{display:flex;flex-wrap:wrap;gap:16px;padding:0 0 18px}
+  .meta label{display:flex;flex-direction:column;font-size:13px;color:#B9C9D6;gap:4px}
+  .meta input{background:#fff;color:var(--ink);border:0;border-radius:var(--radius);padding:8px 10px;min-width:200px}
+
+  /* Division tabs */
+  .tabs{display:flex;gap:2px;overflow-x:auto}
+  .tab{background:transparent;border:0;color:#C9D6E0;padding:12px 18px 14px;cursor:pointer;font:600 17px "Barlow Condensed",sans-serif;letter-spacing:.02em;border-radius:var(--radius) var(--radius) 0 0;white-space:nowrap;display:flex;align-items:center;gap:8px}
+  .tab[aria-selected="true"]{background:var(--concrete);color:var(--ink)}
+  .tab .dot{width:8px;height:8px;border-radius:50%;background:transparent;border:1.5px solid currentColor;opacity:.6}
+  .tab .dot.done{background:var(--ok);border-color:var(--ok);opacity:1}
+
+  /* Sheet */
+  main.wrap{padding-top:24px;padding-bottom:24px}
+  .banner{border-left:4px solid var(--signal);background:#FFF8E1;padding:10px 14px;margin:0 0 16px;border-radius:0 var(--radius) var(--radius) 0;font-size:15px}
+  .banner.info{border-color:var(--navy);background:#EAF1F6}
+  .sheet{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius)}
+  .kpi{display:grid;grid-template-columns:44px 1fr 170px 180px;column-gap:16px;row-gap:10px;padding:18px 20px;border-top:1px solid var(--line)}
+  .kpi:first-child{border-top:0}
+  .kpi-no{font:700 22px/1.1 "Barlow Condensed",sans-serif;color:var(--steel)}
+  .kpi-name h3{font-size:17px;line-height:1.3}
+  .kpi-name p{margin:2px 0 0;color:var(--steel);font-size:14px}
+  .field{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--steel)}
+  .unit-in{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:var(--radius);background:#fff;overflow:hidden}
+  .unit-in:focus-within{border-color:var(--navy);box-shadow:0 0 0 2px #C7D7E4}
+  .unit-in input{border:0;padding:8px 10px;width:100%;min-width:0;font-size:17px;font-variant-numeric:tabular-nums;outline:none}
+  .unit-in em{font-style:normal;background:#F1F4F5;color:var(--steel);padding:8px 10px;font-size:13px;display:flex;align-items:center}
+  .result{display:flex;flex-direction:column;justify-content:flex-end;gap:6px;font-size:13px;color:var(--steel)}
+  .result output{font:700 20px/1 "Barlow Condensed",sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
+  .result output.ok{color:var(--ok)} .result output.miss{color:var(--miss)}
+  .meter{height:6px;background:#E3E8EA;border-radius:3px;overflow:hidden}
+  .meter i{display:block;height:100%;width:0;background:var(--steel);transition:width .25s}
+  .meter i.ok{background:var(--ok)} .meter i.miss{background:var(--miss)}
+  .remark{grid-column:2 / -1}
+  .remark textarea{border:1px solid var(--line);border-radius:var(--radius);padding:8px 10px;min-height:44px;resize:vertical;color:var(--ink)}
+  .remark textarea:focus{border-color:var(--navy);outline:none;box-shadow:0 0 0 2px #C7D7E4}
+  [aria-invalid="true"]{border-color:var(--miss)!important;box-shadow:0 0 0 2px #F3D0CD!important}
+  .kpi.locked input{background:#F1F4F5}
+
+  /* Sticky footer with weight stack */
+  .dock{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);box-shadow:0 -6px 18px rgba(24,34,45,.06)}
+  .dock-in{display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center;padding:14px 20px}
+  .total small{display:block;color:var(--steel);font-size:13px}
+  .total b{font:700 44px/1 "Barlow Condensed",sans-serif;font-variant-numeric:tabular-nums}
+  .stack-wrap small{display:block;color:var(--steel);font-size:13px;margin-bottom:6px}
+  .stack{display:flex;height:22px;gap:3px}
+  .seg{position:relative;background:repeating-linear-gradient(135deg,#E3E8EA 0 6px,#F2F4F5 6px 12px);border-radius:3px;overflow:hidden}
+  .seg i{position:absolute;inset:0 auto 0 0;width:0;background:var(--navy);transition:width .25s}
+  .seg.full i{background:var(--signal)}
+  .dock-status{font-size:13px;color:var(--steel);margin-top:6px;min-height:1.2em}
+
+  /* Admin */
+  .admin-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .admin-bar p{margin:0;color:var(--steel)}
+  table.cfg{width:100%;border-collapse:collapse;font-size:14px}
+  .cfg th{text-align:left;font-weight:600;color:var(--steel);padding:10px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .cfg td{padding:6px 8px;border-bottom:1px solid #E7EBED;vertical-align:middle}
+  .cfg input,.cfg select{width:100%;border:1px solid var(--line);border-radius:4px;padding:6px 8px;background:#fff}
+  .cfg .num{width:80px} .cfg .no{width:52px}
+  .cfg input[data-k="item"]{min-width:230px} .cfg input[data-k="target"]{min-width:140px} .cfg select{min-width:150px}
+  .cfg tr.off td{opacity:.5}
+  .cfg-foot{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:14px 16px}
+  .wsum{font-weight:600} .wsum.bad{color:var(--miss)} .wsum.good{color:var(--ok)}
+  .scroll{overflow-x:auto}
+  .panel-block{margin-top:24px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px}
+  .panel-block h2{font:700 20px "Barlow Condensed",sans-serif;margin-bottom:10px}
+  .row-fields{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+  .row-fields input,.row-fields select{border:1px solid var(--line);border-radius:var(--radius);padding:8px 10px;background:#fff}
+  .hint{color:var(--steel);font-size:14px;margin:6px 0 0}
+
+  /* Modal & toast */
+  dialog{border:0;border-radius:8px;padding:0;max-width:440px;width:calc(100% - 32px);color:var(--ink)}
+  dialog::backdrop{background:rgba(15,46,71,.55)}
+  .modal{padding:22px}
+  .modal h2{font:700 24px "Barlow Condensed",sans-serif;margin-bottom:8px}
+  .modal p{margin:0 0 14px;color:var(--steel)}
+  .modal label{display:flex;flex-direction:column;gap:4px;font-size:14px;margin-bottom:12px}
+  .modal input{border:1px solid var(--line);border-radius:var(--radius);padding:9px 10px}
+  .modal .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
+  .err{color:var(--miss);font-size:14px;min-height:1.3em;margin:0 0 8px}
+  .toast{position:fixed;left:50%;bottom:120px;transform:translate(-50%,20px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:var(--radius);opacity:0;pointer-events:none;transition:.25s;max-width:calc(100% - 32px);z-index:10}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .toast.bad{background:var(--miss)}
+  .loading{padding:40px;text-align:center;color:var(--steel)}
+  .demo-flag{background:var(--signal);color:var(--ink);font-size:13px;font-weight:600;text-align:center;padding:4px}
+
+  @media (max-width:760px){
+    .kpi{grid-template-columns:32px 1fr 1fr}
+    .kpi-name{grid-column:2 / -1}
+    .field.actual{grid-column:2}
+    .result{grid-column:3}
+    .remark{grid-column:1 / -1}
+    .dock-in{grid-template-columns:auto 1fr;gap:12px}
+    .stack-wrap{grid-column:1 / -1;order:-1}
+    .dock-in .btn{justify-self:end}
+    .total b{font-size:34px}
+    .stack-wrap small{display:none}
+    body{padding-bottom:190px}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="demoFlag" class="demo-flag" hidden>Demo mode: not connected to the spreadsheet. Manager password is "demo1234".</div>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <h1>MNR KPI submission</h1>
+        <p>PT Seacon Bintang Sejahtera, Jakarta depot</p>
+      </div>
+      <button id="adminBtn" class="btn btn-ghost" type="button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        <span>Manager settings</span>
+      </button>
+    </div>
+    <div class="meta" id="metaRow">
+      <label>Period<input type="month" id="period"></label>
+      <label>Your name<input type="text" id="submitter" placeholder="e.g. Budi Santoso" autocomplete="name"></label>
+    </div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+  </div>
+</header>
+
+<main class="wrap" id="main"><div class="loading">Loading KPI targets…</div></main>
+
+<div class="dock" id="dock" hidden>
+  <div class="wrap dock-in">
+    <div class="total"><small id="totalLabel">Total score</small><b id="totalVal">–</b></div>
+    <div class="stack-wrap">
+      <small>Each block is one KPI, sized by weight and filled by achievement</small>
+      <div class="stack" id="stack"></div>
+      <div class="dock-status" id="dockStatus"></div>
+    </div>
+    <button class="btn btn-primary" id="submitBtn" type="button">Submit</button>
+  </div>
+</div>
+
+<dialog id="loginDlg">
+  <form class="modal" method="dialog" id="loginForm">
+    <h2>Manager settings</h2>
+    <p>Enter the manager password to change targets and weights. Changes are logged under your name.</p>
+    <label>Your name<input id="adminName" required autocomplete="name"></label>
+    <label>Password<input id="adminPw" type="password" required autocomplete="current-password"></label>
+    <div class="err" id="loginErr" role="alert"></div>
+    <div class="actions">
+      <button class="btn btn-line" value="cancel" formnovalidate type="button" id="loginCancel">Cancel</button>
+      <button class="btn btn-primary" id="loginGo" type="submit">Log in</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="confirmDlg">
+  <div class="modal">
+    <h2 id="confirmTitle">Resubmit?</h2>
+    <p id="confirmText"></p>
+    <div class="actions">
+      <button class="btn btn-line" type="button" id="confirmNo">Cancel</button>
+      <button class="btn btn-primary" type="button" id="confirmYes">Resubmit</button>
+    </div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============ Configuration ============ */
+// Paste your Apps Script web app URL (ends with /exec). Leave as-is to run in demo mode.
+const API_URL = 'https://script.google.com/macros/s/AKfycbxuaWtY13ANneXu0MLGS0V_z9FlWg9E2ml4U-Nww4bKeoIWDknnG9yZyGosQlYXUOUBZQ/exec';
+
+/* ============ Transport ============ */
+const IN_APPS_SCRIPT = typeof google !== 'undefined' && google.script && google.script.run;
+const DEMO = !IN_APPS_SCRIPT && !/^https:\/\/script\.google\.com\//.test(API_URL);
+
+function api(action, data = {}) {
+  const payload = JSON.stringify(Object.assign({ action }, data));
+  if (IN_APPS_SCRIPT) {
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(t => { const j = JSON.parse(t); j.ok ? resolve(j.data) : reject(new Error(j.error)); })
+        .withFailureHandler(e => reject(new Error(e.message || String(e))))
+        .handle(payload);
+    });
+  }
+  if (DEMO) return demoApi(action, data);
+  // text/plain avoids a CORS preflight, which Apps Script cannot answer
+  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: payload, redirect: 'follow' })
+    .then(r => { if (!r.ok) throw new Error('Server returned ' + r.status); return r.json(); })
+    .then(j => { if (!j.ok) throw new Error(j.error); return j.data; });
+}
+
+/* ============ State ============ */
+const DIR_LABEL = { HIGHER: 'Higher is better', LOWER: 'Lower is better', ZERO: 'Zero tolerance' };
+const state = { config: null, division: 'Repair', status: {}, values: {}, admin: null, draft: null, busy: false };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// floor, not round, so 99.96% never displays as a misleading 100%
+const pct = (x, d = 1) => { const f = Math.pow(10, d); return String(Math.floor(x * 100 * f + 1e-9) / f) + '%'; };
+const parseNum = v => { const s = String(v ?? '').trim().replace(',', '.'); return s === '' || isNaN(Number(s)) ? null : Number(s); };
+
+function achievement(dir, qty, actual, cap) {
+  let a;
+  if (dir === 'ZERO') a = actual <= (qty || 0) ? 1 : 0;
+  else if (dir === 'LOWER') a = actual <= 0 ? cap : qty / actual;
+  else a = qty > 0 ? actual / qty : 0;
+  return Math.min(Math.max(a, 0), cap);
+}
+const needsTarget = i => i.direction !== 'ZERO' && (i.qty === null || isNaN(i.qty));
+const activeItems = div => state.config.items.filter(i => i.division === div && i.active).sort((a, b) => a.no - b.no);
+const key = (div, item) => div + '|' + item;
+
+function toast(msg, bad = false) {
+  const t = $('toast'); t.textContent = msg; t.className = 'toast show' + (bad ? ' bad' : '');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.className = 'toast', bad ? 6000 : 4000);
+}
+function periodLabel(p) {
+  const [y, m] = p.split('-'); return new Date(+y, +m - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+}
+
+/* ============ Tabs ============ */
+function renderTabs() {
+  $('tabs').innerHTML = state.config.divisions.map(d => `
+    <button class="tab" role="tab" aria-selected="${d === state.division}" data-div="${esc(d)}">
+      ${state.admin ? '' : `<span class="dot ${state.status[d] ? 'done' : ''}" title="${state.status[d] ? 'Submitted' : 'Not submitted'}"></span>`}
+      ${esc(d)}
+    </button>`).join('');
+}
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('.tab'); if (!b) return;
+  state.division = b.dataset.div; renderTabs();
+  state.admin ? renderAdmin() : renderForm();
+});
+
+/* ============ Submission form ============ */
+function renderForm() {
+  $('metaRow').hidden = false; $('dock').hidden = false;
+  const div = state.division, items = activeItems(div);
+  const missing = items.filter(needsTarget);
+  const st = state.status[div];
+  let html = '';
+  if (missing.length) html += `<div class="banner">The manager has not set targets for ${missing.map(i => esc(i.item)).join(', ')}. ${esc(div)} can submit once those are set.</div>`;
+  if (st) html += `<div class="banner info">${esc(div)} already submitted ${esc(periodLabel($('period').value))} (total ${pct(st.total)}, by ${esc(st.by)}, ${esc(st.at)}). Submitting again replaces it in the reports.</div>`;
+  html += '<div class="sheet">' + items.map((i, idx) => {
+    const v = state.values[key(div, i.item)] || { actual: '', remark: '' };
+    const locked = needsTarget(i);
+    return `<div class="kpi ${locked ? 'locked' : ''}" data-idx="${idx}">
+      <div class="kpi-no">${i.no}</div>
+      <div class="kpi-name"><h3>${esc(i.item)}</h3><p>Target ${esc(i.target)}${locked ? ' (not set)' : ''}, weight ${pct(i.weight, 0)}, ${DIR_LABEL[i.direction] || ''}</p></div>
+      <label class="field actual"><span>Actual</span>
+        <span class="unit-in"><input inputmode="decimal" data-f="actual" value="${esc(v.actual)}" ${locked ? 'disabled' : ''} aria-label="Actual for ${esc(i.item)}">${i.unit ? `<em>${esc(i.unit)}</em>` : ''}</span>
+      </label>
+      <div class="result"><span>Achievement</span><output>–</output><div class="meter"><i></i></div></div>
+      <label class="field remark"><span>Remark: why it was achieved or missed</span>
+        <textarea data-f="remark" rows="2" ${locked ? 'disabled' : ''} aria-label="Remark for ${esc(i.item)}">${esc(v.remark)}</textarea>
+      </label>
+    </div>`;
+  }).join('') + '</div>';
+  $('main').innerHTML = html;
+  $('submitBtn').textContent = (st ? 'Resubmit ' : 'Submit ') + div + ' KPI';
+  $('submitBtn').disabled = missing.length > 0 || state.busy;
+  $('totalLabel').textContent = div + ' total score';
+  $('stack').innerHTML = items.map(i => `<div class="seg" style="flex:${i.weight}" title="${esc(i.item)}"><i></i></div>`).join('');
+  updateScores();
+}
+
+function updateScores() {
+  const div = state.division, items = activeItems(div), cap = state.config.cap;
+  let total = 0, filled = 0;
+  const rows = document.querySelectorAll('.kpi'), segs = document.querySelectorAll('.seg');
+  items.forEach((i, idx) => {
+    const v = state.values[key(div, i.item)] || {};
+    const actual = parseNum(v.actual);
+    const out = rows[idx]?.querySelector('output'), bar = rows[idx]?.querySelector('.meter i'), seg = segs[idx];
+    if (actual === null || needsTarget(i)) {
+      if (out) { out.textContent = '–'; out.className = ''; }
+      if (bar) { bar.style.width = '0'; bar.className = ''; }
+      if (seg) { seg.querySelector('i').style.width = '0'; seg.classList.remove('full'); }
+      return;
+    }
+    filled++;
+    const a = achievement(i.direction, i.qty, actual, cap);
+    total += a * i.weight;
+    const cls = a >= 1 ? 'ok' : 'miss';
+    out.textContent = pct(a); out.className = cls;
+    bar.style.width = Math.min(a, 1) * 100 + '%'; bar.className = cls;
+    seg.querySelector('i').style.width = Math.min(a, 1) * 100 + '%';
+    seg.classList.toggle('full', a >= 1);
+  });
+  $('totalVal').textContent = filled ? pct(total) : '–';
+  $('dockStatus').textContent = `${filled} of ${items.length} KPIs filled`;
+}
+
+$('main').addEventListener('input', e => {
+  const f = e.target.dataset.f; if (!f || state.admin) return;
+  const row = e.target.closest('.kpi'), i = activeItems(state.division)[+row.dataset.idx];
+  const k = key(state.division, i.item);
+  state.values[k] = Object.assign({ actual: '', remark: '' }, state.values[k], { [f]: e.target.value });
+  e.target.removeAttribute('aria-invalid');
+  if (f === 'actual') updateScores();
+});
+
+function validateForm() {
+  const items = activeItems(state.division), rows = document.querySelectorAll('.kpi');
+  let first = null, count = 0;
+  const flag = el => { el.setAttribute('aria-invalid', 'true'); first = first || el; count++; };
+  if ($('submitter').value.trim().length < 2) flag($('submitter'));
+  items.forEach((i, idx) => {
+    const v = state.values[key(state.division, i.item)] || {};
+    if (parseNum(v.actual) === null) flag(rows[idx].querySelector('input'));
+    if (String(v.remark || '').trim().length < 3) flag(rows[idx].querySelector('textarea'));
+  });
+  if (first) { first.focus(); toast(`${count} field${count > 1 ? 's' : ''} missing. Fill in your name, every actual, and every remark.`, true); }
+  return !first;
+}
+$('submitter').addEventListener('input', e => e.target.removeAttribute('aria-invalid'));
+
+$('submitBtn').addEventListener('click', async () => {
+  if (state.busy || !validateForm()) return;
+  const div = state.division, period = $('period').value, st = state.status[div];
+  if (st && !(await confirmBox(`Resubmit ${div}?`, `${div} was submitted for ${periodLabel(period)} by ${st.by} on ${st.at}. The old rows stay in the sheet marked SUPERSEDED, and reports use the new numbers.`))) return;
+  state.busy = true; $('submitBtn').disabled = true; $('submitBtn').textContent = 'Submitting…';
+  try {
+    const entries = activeItems(div).map(i => {
+      const v = state.values[key(div, i.item)]; return { item: i.item, actual: v.actual, remark: v.remark };
+    });
+    const r = await api('submit', { division: div, period, submittedBy: $('submitter').value.trim(), entries });
+    toast(`${div} KPI submitted for ${periodLabel(period)}. Total score ${pct(r.total)}.`);
+    await loadStatus();
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    state.busy = false; renderTabs(); renderForm();
+  }
+});
+
+async function loadStatus() {
+  try { state.status = await api('getStatus', { period: $('period').value }); }
+  catch (err) { state.status = {}; toast('Could not load submission status: ' + err.message, true); }
+}
+$('period').addEventListener('change', async () => {
+  if (!/^\d{4}-\d{2}$/.test($('period').value)) return;
+  await loadStatus(); renderTabs(); if (!state.admin) renderForm();
+});
+
+function confirmBox(title, text) {
+  return new Promise(res => {
+    $('confirmTitle').textContent = title; $('confirmText').textContent = text;
+    const d = $('confirmDlg'); d.showModal();
+    const done = v => { d.close(); $('confirmYes').onclick = $('confirmNo').onclick = null; res(v); };
+    $('confirmYes').onclick = () => done(true); $('confirmNo').onclick = () => done(false);
+  });
+}
+
+/* ============ Manager login ============ */
+$('adminBtn').addEventListener('click', () => {
+  if (state.admin) return logout();
+  $('loginErr').textContent = ''; $('adminPw').value = ''; $('loginDlg').showModal(); $('adminName').focus();
+});
+$('loginCancel').addEventListener('click', () => $('loginDlg').close());
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('loginGo').disabled = true; $('loginErr').textContent = '';
+  try {
+    const r = await api('login', { password: $('adminPw').value, name: $('adminName').value });
+    state.admin = r; $('loginDlg').close();
+    clearTimeout(state.expiry); state.expiry = setTimeout(() => { toast('Manager session expired. Unsaved changes were discarded.', true); logout(true); }, r.expiresIn * 1000);
+    enterAdmin();
+  } catch (err) { $('loginErr').textContent = err.message; }
+  finally { $('loginGo').disabled = false; $('adminPw').value = ''; }
+});
+
+function enterAdmin() {
+  state.draft = { cap: state.config.cap, items: JSON.parse(JSON.stringify(state.config.items)) };
+  $('adminBtn').querySelector('span').textContent = 'Log out of settings';
+  renderTabs(); renderAdmin();
+}
+async function logout(silent) {
+  if (!silent && state.admin) try { await api('logout', { token: state.admin.token }); } catch (e) {}
+  clearTimeout(state.expiry); state.admin = null; state.draft = null;
+  $('adminBtn').querySelector('span').textContent = 'Manager settings';
+  renderTabs(); renderForm();
+}
+
+/* ============ Manager config editor ============ */
+function weightSum(div) {
+  return state.draft.items.filter(i => i.division === div && i.active).reduce((s, i) => s + (Number(i.weight) || 0), 0);
+}
+function badDivisions() {
+  return state.config.divisions.filter(d => state.draft.items.some(i => i.division === d && i.active) && Math.abs(weightSum(d) - 1) > 0.0005);
+}
+
+function renderAdmin() {
+  $('metaRow').hidden = true; $('dock').hidden = true;
+  const div = state.division;
+  const rows = state.draft.items.map((i, idx) => ({ i, idx })).filter(x => x.i.division === div).sort((a, b) => a.i.no - b.i.no);
+  const sum = weightSum(div), ok = Math.abs(sum - 1) <= 0.0005, bad = badDivisions();
+  $('main').innerHTML = `
+    <div class="admin-bar">
+      <p>Logged in as <strong>${esc(state.admin.name)}</strong>. Edits apply to future submissions only; past rows keep the target they were scored against.</p>
+      <label class="row-fields">Achievement cap
+        <select id="capSel">${[1, 1.1, 1.2, 1.5].map(c => `<option value="${c}" ${Math.abs(state.draft.cap - c) < 1e-9 ? 'selected' : ''}>${pct(c, 0)}</option>`).join('')}</select>
+      </label>
+    </div>
+    <div class="sheet">
+      <div class="scroll"><table class="cfg">
+        <thead><tr><th>No</th><th>Items KPI</th><th>Target label</th><th>QTY target</th><th>Weight %</th><th>Direction</th><th>Unit</th><th>Active</th><th></th></tr></thead>
+        <tbody>${rows.map(({ i, idx }) => `
+          <tr data-idx="${idx}" class="${i.active ? '' : 'off'}">
+            <td><input class="no" data-k="no" inputmode="numeric" value="${esc(i.no)}" aria-label="Number"></td>
+            <td><input data-k="item" value="${esc(i.item)}" aria-label="Item name"></td>
+            <td><input data-k="target" value="${esc(i.target)}" aria-label="Target label"></td>
+            <td><input class="num" data-k="qty" inputmode="decimal" value="${i.qty === null ? '' : esc(i.qty)}" placeholder="${i.direction === 'ZERO' ? '0' : 'Required'}" aria-label="QTY target"></td>
+            <td><input class="num" data-k="weight" inputmode="decimal" value="${+(i.weight * 100).toFixed(2)}" aria-label="Weight percent"></td>
+            <td><select data-k="direction" aria-label="Direction">${Object.keys(DIR_LABEL).map(d => `<option value="${d}" ${i.direction === d ? 'selected' : ''}>${DIR_LABEL[d]}</option>`).join('')}</select></td>
+            <td><input class="num" data-k="unit" value="${esc(i.unit)}" aria-label="Unit"></td>
+            <td><input type="checkbox" data-k="active" ${i.active ? 'checked' : ''} aria-label="Active"></td>
+            <td><button class="btn btn-danger" data-del="${idx}" type="button" aria-label="Remove ${esc(i.item)}">Remove</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div>
+      <div class="cfg-foot">
+        <button class="btn btn-line" id="addRow" type="button">Add KPI item</button>
+        <span class="wsum ${ok ? 'good' : 'bad'}" id="wsum">${esc(div)} active weights total ${pct(sum)}${ok ? '' : ', must be 100%'}</span>
+      </div>
+    </div>
+    <div class="cfg-foot" style="padding:16px 0">
+      <span class="hint" id="saveHint">${bad.length ? 'Fix weights for ' + bad.map(esc).join(', ') + ' before saving.' : 'All divisions total 100%.'}</span>
+      <span style="display:flex;gap:10px">
+        <button class="btn btn-line" id="discard" type="button">Discard changes</button>
+        <button class="btn btn-primary" id="saveCfg" type="button" ${bad.length ? 'disabled' : ''}>Save changes</button>
+      </span>
+    </div>
+    <div class="panel-block">
+      <h2>Change manager password</h2>
+      <div class="row-fields">
+        <input type="password" id="pwOld" placeholder="Current password" autocomplete="current-password">
+        <input type="password" id="pwNew" placeholder="New password (8+ characters)" autocomplete="new-password">
+        <input type="password" id="pwNew2" placeholder="Repeat new password" autocomplete="new-password">
+        <button class="btn btn-line" id="pwGo" type="button">Change password</button>
+      </div>
+    </div>`;
+}
+
+function refreshWeightInfo() {
+  const div = state.division, sum = weightSum(div), ok = Math.abs(sum - 1) <= 0.0005, bad = badDivisions();
+  $('wsum').className = 'wsum ' + (ok ? 'good' : 'bad');
+  $('wsum').textContent = `${div} active weights total ${pct(sum)}${ok ? '' : ', must be 100%'}`;
+  $('saveHint').textContent = bad.length ? 'Fix weights for ' + bad.join(', ') + ' before saving.' : 'All divisions total 100%.';
+  $('saveCfg').disabled = bad.length > 0;
+}
+
+$('main').addEventListener('input', e => {
+  if (!state.admin) return;
+  const k = e.target.dataset.k, tr = e.target.closest('tr');
+  if (e.target.id === 'capSel') { state.draft.cap = Number(e.target.value); return; }
+  if (!k || !tr) return;
+  const it = state.draft.items[+tr.dataset.idx];
+  if (k === 'active') { it.active = e.target.checked; tr.classList.toggle('off', !it.active); }
+  else if (k === 'weight') it.weight = (parseNum(e.target.value) ?? 0) / 100;
+  else if (k === 'qty') it.qty = parseNum(e.target.value);
+  else if (k === 'no') it.no = parseNum(e.target.value) ?? 0;
+  else it[k] = e.target.value;
+  refreshWeightInfo();
+});
+$('main').addEventListener('change', e => { if (state.admin && e.target.id === 'capSel') state.draft.cap = Number(e.target.value); });
+
+$('main').addEventListener('click', async e => {
+  if (!state.admin) return;
+  if (e.target.dataset.del !== undefined) {
+    state.draft.items.splice(+e.target.dataset.del, 1); renderAdmin(); return;
+  }
+  if (e.target.id === 'addRow') {
+    const nos = state.draft.items.filter(i => i.division === state.division).map(i => i.no);
+    state.draft.items.push({ division: state.division, no: (nos.length ? Math.max(...nos) : 0) + 1, item: '', target: '', qty: null, weight: 0, direction: 'HIGHER', unit: '', active: true });
+    renderAdmin(); const inputs = document.querySelectorAll('.cfg tbody tr:last-child input[data-k="item"]'); inputs[0]?.focus(); return;
+  }
+  if (e.target.id === 'discard') { enterAdmin(); toast('Changes discarded.'); return; }
+  if (e.target.id === 'saveCfg') {
+    e.target.disabled = true; e.target.textContent = 'Saving…';
+    try {
+      const r = await api('saveConfig', { token: state.admin.token, cap: state.draft.cap, items: state.draft.items });
+      state.config = r.config; enterAdmin();
+      toast(r.changes ? `Saved ${r.changes} change${r.changes > 1 ? 's' : ''}. Logged under ${state.admin.name}.` : 'Nothing changed.');
+    } catch (err) {
+      toast(err.message, true); e.target.disabled = false; e.target.textContent = 'Save changes';
+      if (/session expired/i.test(err.message)) logout(true);
+    }
+    return;
+  }
+  if (e.target.id === 'pwGo') {
+    const o = $('pwOld').value, n = $('pwNew').value, n2 = $('pwNew2').value;
+    if (n.length < 8) return toast('New password needs at least 8 characters.', true);
+    if (n !== n2) return toast('New passwords do not match.', true);
+    try { await api('changePassword', { token: state.admin.token, oldPassword: o, newPassword: n }); toast('Password changed.'); ['pwOld', 'pwNew', 'pwNew2'].forEach(id => $(id).value = ''); }
+    catch (err) { toast(err.message, true); }
+  }
+});
+
+/* ============ Boot ============ */
+(async function boot() {
+  $('demoFlag').hidden = !DEMO;
+  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1);   // default: previous month
+  $('period').value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  try {
+    state.config = await api('getConfig');
+    state.division = state.config.divisions[0];
+    await loadStatus();
+    renderTabs(); renderForm();
+  } catch (err) {
+    $('main').innerHTML = `<div class="banner">Could not load KPI targets: ${esc(err.message)}. Check that the web app URL is correct and deployed with access set to "Anyone".</div>`;
+  }
+})();
+
+/* ============ Demo backend (only used when API_URL is not set) ============ */
+function demoApi(action, p) {
+  const seed = [
+    ['Repair',1,'Inhouse Repair Productivity','≥ 2600 Box',2600,.2,'HIGHER','Box'],['Repair',2,'Repair Unit Cost / Box','≤ 13 USD',13,.2,'LOWER','USD'],
+    ['Repair',3,'Vendor Productivity Achievement','≥ 2600 Box',2600,.2,'HIGHER','Box'],['Repair',4,'Vendor Attendance','≥ 98%',98,.1,'HIGHER','%'],
+    ['Repair',5,'Repair Lead Time','≤ 3 days',3,.1,'LOWER','days'],['Repair',6,'SBS Team Attendance','≥ 98%',98,.1,'HIGHER','%'],
+    ['Repair',7,'Safety Compliance','0 Finding',0,.1,'ZERO','finding'],
+    ['QC',1,'QC Accuracy','≥ 99%',99,.2,'HIGHER','%'],['QC',2,'Repair Rejection','≤ 2%',2,.2,'LOWER','%'],['QC',3,'Ghost Repair Finding','0 case',0,.2,'ZERO','case'],
+    ['QC',4,'QC Inspection Completion','100%',100,.1,'HIGHER','%'],['QC',5,'QC Error','≤ 1%',1,.1,'LOWER','%'],['QC',6,'SBS Team Attendance','≥ 98%',98,.1,'HIGHER','%'],
+    ['QC',7,'Safety Compliance','0 Finding',0,.1,'ZERO','finding'],
+    ['Survey & Washing',1,'Survey Productivity','≥ Approved Target',null,.2,'HIGHER','Box'],['Survey & Washing',2,'Survey Accuracy','≥ 99%',99,.2,'HIGHER','%'],
+    ['Survey & Washing',3,'Survey Loss','< 0.33%',.33,.2,'LOWER','%'],['Survey & Washing',4,'Washing Productivity','≥ Target',null,.1,'HIGHER','Box'],
+    ['Survey & Washing',5,'Customer Rejection','≤ 1%',1,.1,'LOWER','%'],['Survey & Washing',6,'SBS Team Attendance','≥ 98%',98,.1,'HIGHER','%'],
+    ['Survey & Washing',7,'Safety Compliance','0 Finding',0,.1,'ZERO','finding'],
+    ['Reefer',1,'Reefer Productivity','≥ Approved Target',null,.2,'HIGHER','Box'],['Reefer',2,'Reefer Repair Cost','≤ Budget',null,.2,'LOWER','USD'],
+    ['Reefer',3,'PTI / Testing Accuracy','≥ 99%',99,.2,'HIGHER','%'],['Reefer',4,'Rescue Container','< 6 Hours',6,.1,'LOWER','hours'],
+    ['Reefer',5,'Ghost Repair Finding','0 case',0,.1,'ZERO','case'],['Reefer',6,'SBS Team Attendance','≥ 98%',98,.1,'HIGHER','%'],
+    ['Reefer',7,'Safety Compliance','0 Finding',0,.1,'ZERO','finding']
+  ];
+  const db = demoApi.db || (demoApi.db = {
+    cfg: { divisions: ['Repair', 'QC', 'Survey & Washing', 'Reefer'], cap: 1,
+      items: seed.map(r => ({ division: r[0], no: r[1], item: r[2], target: r[3], qty: r[4], weight: r[5], direction: r[6], unit: r[7], active: true })) },
+    status: {}
+  });
+  const wait = v => new Promise(r => setTimeout(() => r(JSON.parse(JSON.stringify(v))), 250));
+  const fail = m => new Promise((_, j) => setTimeout(() => j(new Error(m)), 250));
+  switch (action) {
+    case 'getConfig': return wait(db.cfg);
+    case 'getStatus': return wait(db.status[p.period] || {});
+    case 'submit': {
+      const items = db.cfg.items.filter(i => i.division === p.division && i.active);
+      const total = items.reduce((s, i) => { const e = p.entries.find(x => x.item === i.item); return s + achievement(i.direction, i.qty, parseNum(e.actual), db.cfg.cap) * i.weight; }, 0);
+      (db.status[p.period] = db.status[p.period] || {})[p.division] = { total, by: p.submittedBy, at: new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) };
+      return wait({ total, rows: items.length });
+    }
+    case 'login': return p.password === 'demo1234' ? wait({ token: 'demo', name: p.name || 'Manager', expiresIn: 1800 }) : fail('Wrong password.');
+    case 'logout': return wait(null);
+    case 'saveConfig': db.cfg.items = p.items; db.cfg.cap = p.cap; return wait({ changes: 1, config: db.cfg });
+    case 'changePassword': return wait({ changed: true });
+  }
+  return fail('Unknown action');
+}
+</script>
+</body>
+</html>
